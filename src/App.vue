@@ -1,38 +1,60 @@
 <template>
-
-<div class="container-lg">
-  <div id="app" class="col-sm-12">
-    <div class="offset">
-      <b-table
-          :items="displayedPosts"
-          :fields="fields"
-
-      >
-
-      </b-table>
-      <nav aria-label="Page navigation example">
-        <ul class="pagination">
-          <li class="page-item">
-            <button type="button" class="page-link"  @click="page--" disabled> Назад</button>
-          </li>
-          <li class="page-item">
-            <button type="button" class="page-number"
-                    v-for="pageNumber in pages.slice(0, 10)"
-                    :key="pageNumber.id"
-                    @click="page = pageNumber"> {{ pageNumber }}
-            </button>
-          </li>
-          <li class="page-item">
-            <button type="button" @click="page++"  class="page-link"> Далее</button>
-          </li>
-        </ul>
-      </nav>
+  <div class="container">
+    <div id="app">
+      <div class="offset">
+        <table cellspacing="0">
+          <thead class="tableHeader">
+          <tr>
+            <th>id
+              <button class="arrow">&#709;</button>
+            </th>
+            <th>Заголовок
+              <button class="arrow" @click="sortedArray">&#709;</button>
+            </th>
+            <th>Описание
+              <button class="arrow" >&#709;</button>
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr
+              v-for="p in displayedPosts"
+              :key="p.id"
+          >
+            <td class="id">{{ p.id }}</td>
+            <td class="title">{{ p.title }}</td>
+            <td class="body">{{ p.body }}</td>
+          </tr>
+          </tbody>
+        </table>
+        <nav aria-label="Page navigation example">
+          <ul class="pagination">
+            <div>
+              <li class="page-item">
+                <button type="button" class="page-link" @click="previousPage" :disabled="this.back">Назад</button>
+              </li>
+            </div>
+            <div>
+              <li class="page-item">
+                <button type="button" class="page-number"
+                        v-for="pageNumber in pages"
+                        :key="pageNumber.id"
+                >
+                  {{ pageNumber }}
+                </button>
+              </li>
+            </div>
+            <div>
+              <li class="page-item">
+                <button type="button" @click="nextPage" class="page-link"> Далее</button>
+              </li>
+            </div>
+          </ul>
+        </nav>
+      </div>
     </div>
   </div>
-</div>
-
 </template>
-
 <script>
 import axios from "axios";
 
@@ -40,70 +62,81 @@ import axios from "axios";
 export default {
   data() {
     return {
-      posts: [''],
+      posts: [],
       page: 1,
       perPage: 10,
       pages: [],
-      fields: [
-        {
-          key: 'id',
-          sortable: true
-        },
-        {
-          key: 'title',
-          sortable: false
-        },
-        {
-          key: 'body',
-          label: 'Person age',
-          sortable: true,
-          // Variant applies to the whole column, including the header and footer
-
-        }
-      ],
+      back: true
     }
   },
+
   methods: {
     getPosts() {
       axios.get('https://jsonplaceholder.typicode.com/posts')
-          .then(response=>{
-
-              this.posts = response.data;
-
+          .then(response => {
+            this.posts = response.data;
+            this.setPages()
           })
+          .catch(e => {
+            console.log(e);
+          })
+
     },
+
+    sortedArray() {
+
+      let sortedPosts = this.posts;
+
+      sortedPosts.sort((a,b) => {
+        let fa = a.title.toLowerCase(), fb = b.title.toLowerCase();
+        if (fa < fb) {
+          return -1
+        }
+        if (fa > fb) {
+          return 1
+        }
+        return 0
+      })
+    },
+
     setPages() {
       let numberOfPages = Math.ceil(this.posts.length / this.perPage);
       for (let index = 1; index <= numberOfPages; index++) {
         this.pages.push(index);
       }
     },
-    paginate(posts) {
+
+    sortById() {
+
+    },
+
+    nextPage() {
+      this.page++
+    },
+
+    previousPage() {
+      this.page--
+      if(this.page!==1){
+        this.back=true
+      }else{
+        this.back=false
+      }
+    }
+  },
+
+  computed: {
+    displayedPosts() {
       let page = this.page;
       let perPage = this.perPage;
       let from = (page * perPage) - perPage;
       let to = (page * perPage);
-      return posts.slice(from, to);
-    }
+      return this.posts.slice(from, to);
+    },
   },
-  computed: {
-    displayedPosts() {
-      return this.paginate(this.posts);
-    }
-  },
-  watch: {
-    posts() {
-      this.setPages();
-    }
-  },
+
   created() {
     this.getPosts();
   },
-  filters: {
-    trimWords(value) {
-      return value.split(" ").splice(0, 20).join(" ") + '...';
-    }
-  }
 }
 </script>
 
@@ -124,80 +157,89 @@ html, body {
   width: 100%;
 }
 
-h6, h5, h4, h3, h2, h1 {
+* {
   margin: 0;
   padding: 0;
 }
-thead{
+
+.tableHeader {
   background-color: #474955;
   height: 54px;
   text-align: center;
   align-items: center;
+  color: white;
 }
-thead tr th{
-  align-items: center;
-  text-align: center;
+
+.tableHeader tr {
+  border: none;
 }
+
 li {
   list-style: none;
-}
-
-li button {
-
 }
 
 li button:hover {
   color: #7EBC3C;
 }
 
-p {
-  padding: 0;
-  margin: 0;
-}
-
-nav{
+nav {
   display: flex;
   width: 100%;
   justify-content: center;
 }
-ul{
-  display: flex;
-}
-nav ul li{
+
+nav ul li {
   display: flex;
   justify-content: space-between;
 }
 
-
-table {
+.tableHeader {
   width: 100%;
 }
-table tr td{
-  height: 57px;
-  text-align: center;
-  align-items: center;
-  padding: 0px;
 
+.tableHeader tr td {
+  height: 57px;
+  text-align: left;
+  padding: 0;
 }
-.pagination{
+
+.pagination {
   display: flex;
   justify-content: space-between;
 }
-td{
+
+td {
   padding: 0 !important;
 }
-.page-number{
+
+.page-number {
   color: black;
   background: white;
   border: none;
 }
-.page-link{
-  color:black;
 
-}
-li .page-number:hover{
-  color:green;
-
+.page-link {
+  color: black;
 }
 
+li .page-number:hover {
+  color: green;
+}
+
+.container {
+  max-width: 1079px;
+  margin: 0 auto;
+}
+
+.id {
+  width: 114px;
+  height: 87px;
+  margin-right: 50px;
+}
+
+.arrow {
+  border: none;
+  color: white;
+  background: inherit;
+}
 </style>
