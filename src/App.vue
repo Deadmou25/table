@@ -2,23 +2,27 @@
   <div class="container">
     <div id="app">
       <div class="offset">
+        <div class="search">
+          <input type="search" @change="searchData" placeholder="Поиск" v-model="search">
+          <button class="search__button"></button>
+        </div>
         <table cellspacing="0">
           <thead class="tableHeader">
           <tr>
             <th>id
-              <button class="arrow">&#709;</button>
+              &#709;
             </th>
             <th>Заголовок
-              <button class="arrow" @click="sortedArray">&#709;</button>
+              <button class="arrow">&#709;</button>
             </th>
             <th>Описание
-              <button class="arrow" >&#709;</button>
+              <button class="arrow">&#709;</button>
             </th>
           </tr>
           </thead>
           <tbody>
           <tr
-              v-for="p in displayedPosts"
+              v-for="p in this.displayedPosts"
               :key="p.id"
           >
             <td class="id">{{ p.id }}</td>
@@ -27,30 +31,24 @@
           </tr>
           </tbody>
         </table>
-        <nav aria-label="Page navigation example">
-          <ul class="pagination">
-            <div>
-              <li class="page-item">
-                <button type="button" class="page-link" @click="previousPage" :disabled="this.back">Назад</button>
-              </li>
-            </div>
-            <div>
-              <li class="page-item">
-                <button type="button" class="page-number"
-                        v-for="pageNumber in pages"
-                        :key="pageNumber.id"
-                >
-                  {{ pageNumber }}
-                </button>
-              </li>
-            </div>
-            <div>
-              <li class="page-item">
-                <button type="button" @click="nextPage" class="page-link"> Далее</button>
-              </li>
-            </div>
-          </ul>
-        </nav>
+        <div class="navigation">
+          <div>
+            <button type="button" @click="previousPage" :disabled="page===1" class="page-link">Назад</button>
+          </div>
+          <div class="page-number">
+            <button type="button"
+                    v-for="pageNumber in pages"
+                    :key="pageNumber.id"
+                    @click="page=pageNumber"
+                    :class="{active:isPageActive(pageNumber)}"
+            >
+              {{ pageNumber }}
+            </button>
+          </div>
+          <div>
+            <button type="button" @click="nextPage" :disabled="page===pages.length" class="page-link"> Далее</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -60,13 +58,18 @@ import axios from "axios";
 
 
 export default {
+  components: {},
+
   data() {
     return {
       posts: [],
       page: 1,
-      perPage: 10,
+      perPage: 0,
       pages: [],
-      back: true
+      search: "",
+      searchDelay: 500,
+      searchTimer: 0,
+      filterPosts: []
     }
   },
 
@@ -80,34 +83,32 @@ export default {
           .catch(e => {
             console.log(e);
           })
-
     },
 
-    sortedArray() {
-
-      let sortedPosts = this.posts;
-
-      sortedPosts.sort((a,b) => {
-        let fa = a.title.toLowerCase(), fb = b.title.toLowerCase();
-        if (fa < fb) {
-          return -1
-        }
-        if (fa > fb) {
+    searchData() {
+      clearTimeout(this.searchTimer)
+      this.searchTimer = setTimeout(() => {
+        this.filterPosts = this.posts.filter(item => {
+          return item.body.includes(this.search) || item.title.includes(this.search) || String(item.id).includes(this.search)
+        })
+      }, this.searchDelay)
+      this.filterPosts.sort((a, b) => {
+        if (a.id < b.id){
+          a.slice()
           return 1
         }
-        return 0
+        return -1
       })
     },
 
     setPages() {
       let numberOfPages = Math.ceil(this.posts.length / this.perPage);
+      if (numberOfPages >= 10) {
+        this.perPage += 1
+      }
       for (let index = 1; index <= numberOfPages; index++) {
         this.pages.push(index);
       }
-    },
-
-    sortById() {
-
     },
 
     nextPage() {
@@ -116,22 +117,34 @@ export default {
 
     previousPage() {
       this.page--
-      if(this.page!==1){
-        this.back=true
-      }else{
-        this.back=false
-      }
-    }
+    },
+
+    isPageActive(page) {
+      return this.page === page;
+    },
   },
 
   computed: {
-    displayedPosts() {
+    displayedPosts: function () {
       let page = this.page;
       let perPage = this.perPage;
       let from = (page * perPage) - perPage;
       let to = (page * perPage);
-      return this.posts.slice(from, to);
+      if (this.search === "") {
+        return this.posts.slice(from, to)
+      }
+
+      return this.filterPosts.slice(from, to)
     },
+    // maxPage: function () {
+    //   for (let i=0;i<this.filterPosts.length;i++){
+    //     if(this.filterPosts[i]>10){
+    //       return this.perPage +=1
+    //     }
+    //   }
+    //   return this.filterPosts.length/this.perPage
+    // }
+
   },
 
   created() {
@@ -188,6 +201,35 @@ nav {
   justify-content: center;
 }
 
+.search {
+  margin: 25px 0 15px 0;
+  display: inline-flex;
+  width: 100%;
+}
+
+.search__button {
+  width: 21px;
+  height: 21px;
+  border: none;
+  background-image: url("https://cdn.icon-icons.com/icons2/1769/PNG/128/4092559-magnifier-mobile-ui-search-ui-website-zoom_114034.png");
+  background-repeat: no-repeat;
+  background-size: 21px 21px;
+  background-color: #5A5C66;
+  margin: 8px 0px 8px 0;
+  padding-left: 20px;
+}
+
+
+.search input {
+  width: 631px;
+  height: 52px;
+  padding-left: 28px;
+  background-color: #5A5C66;
+  margin-right: -60px;
+  margin-top: -5.6px;
+}
+
+
 nav ul li {
   display: flex;
   justify-content: space-between;
@@ -203,23 +245,37 @@ nav ul li {
   padding: 0;
 }
 
-.pagination {
-  display: flex;
-  justify-content: space-between;
-}
-
 td {
   padding: 0 !important;
 }
 
+
+.navigation {
+  display: flex;
+  justify-content: space-around;
+
+}
+
 .page-number {
-  color: black;
-  background: white;
+  display: flex;
+  align-items: center;
+}
+
+.page-number button {
+  background: none;
   border: none;
+  font-weight: 700;
+  font-size: 16px;
+  margin-right: 5px;
+
+
 }
 
 .page-link {
   color: black;
+  background: none;
+  font-size: 24px;
+  border: none;
 }
 
 li .page-number:hover {
@@ -241,5 +297,9 @@ li .page-number:hover {
   border: none;
   color: white;
   background: inherit;
+}
+
+.active {
+  color: green;
 }
 </style>
